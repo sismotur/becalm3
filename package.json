@@ -23,5 +23,8 @@
     "fastify": "^2.13.0",
     "install": "^0.13.0",
     "npm": "^6.14.4"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.2"
   }
 }

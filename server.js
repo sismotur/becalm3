@@ -1,9 +1,34 @@
+// run with $ node server
 // Require fastify (www.fastify.io)
 const fastify = require("fastify")({ logger: true });
 
 // Declare a route
-fastify.get("/", async(request, reply) => {
-    return { hello: "world" };
+fastify.route({
+    method: "GET",
+    url: "/",
+    schema: {
+        // request needs to have a querystring with a `name` parameter
+        querystring: {
+            name: { type: "string" }
+        },
+        // the response needs to be an object with a `hello` property of type 'string
+        response: {
+            200: {
+                type: "object",
+                properties: {
+                    hello: { type: "string" }
+                }
+            }
+        }
+    },
+    // this function is executed for every request before the handler is executed
+    preHandler: async(request, reply) => {
+        // e.g. check authentication
+        fastify.log.info("Called beforeHandler");
+    },
+    handler: async(request, reply) => {
+        return { hello: "mundo" };
+    }
 });
 
 // Run the server
