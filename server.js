@@ -2,7 +2,33 @@
 // Require fastify (www.fastify.io)
 const fastify = require("fastify")({ logger: true });
 
-// Declare a route
+// Register Postgres database manager
+fastify.register(require("fastify-postgres"), {
+    connectionString: "postgres://postgres@localhost/postgres"
+});
+
+// Declare a GET route
+fastify.route({
+    method: "GET",
+    url: "/user",
+    handler: async(request, reply) => {
+        return {
+            hello: "USER GET ROUTE OK"
+        };
+    }
+});
+
+// Declare a POST route
+fastify.route({
+    method: "POST",
+    url: "/data-sensor",
+    handler: async(request, reply) => {
+        return {
+            hello: "USER POST ROUTE OK"
+        };
+    }
+});
+
 fastify.route({
     method: "GET",
     url: "/",
@@ -24,10 +50,10 @@ fastify.route({
     // this function is executed for every request before the handler is executed
     preHandler: async(request, reply) => {
         // e.g. check authentication
-        fastify.log.info("Called beforeHandler");
+        fastify.log.info("Called beforeHandler route /");
     },
     handler: async(request, reply) => {
-        return { hello: "mundo" };
+        return { hello: "mundo postgres" };
     }
 });
 
