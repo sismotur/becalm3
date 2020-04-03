@@ -1,2 +1,5 @@
 # Visual Studio Files
 *.code-workspace
+
+# Node modules
+node_modules

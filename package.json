@@ -18,5 +18,10 @@
   "bugs": {
     "url": "https://github.com/sismotur/becalm3/issues"
   },
-  "homepage": "https://github.com/sismotur/becalm3#readme"
+  "homepage": "https://github.com/sismotur/becalm3#readme",
+  "dependencies": {
+    "fastify": "^2.13.0",
+    "install": "^0.13.0",
+    "npm": "^6.14.4"
+  }
 }
