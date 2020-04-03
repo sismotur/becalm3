@@ -24,10 +24,16 @@ fastify.route({
     url: "/data-sensor",
     handler: async(request, reply) => {
         return fastify.pg.transact(async client => {
-            const id = await client.query(
-                "INSERT INTO sensor_data.test(id) VALUES($1) RETURNING id", [100]
+            const randomTemp =
+                Math.round((36.5 + 5 * Math.random() + Number.EPSILON) * 100) / 100;
+            const t = new Date();
+            const currentTimeISO = t.toISOString();
+            fastify.log.info(`currentTimeISO: ${currentTimeISO}`);
+            const id_device = await client.query(
+                `INSERT INTO sensor_data.measures (id_device, measure_type, measure_value, date_generation)
+                VALUES ($1, $2, $3, $4) RETURNING id_device`, [1, "t", randomTemp, currentTimeISO]
             );
-            return id;
+            reply.code(200).send({ status: "OK sensor data inserted" });
         });
     }
 });
@@ -36,11 +42,11 @@ fastify.route({
     method: "GET",
     url: "/",
     schema: {
-        // request needs to have a querystring with a `name` parameter
+        // request needs to have a querystring with a "name" parameter
         querystring: {
             name: { type: "string" }
         },
-        // the response needs to be an object with a `hello` property of type 'string
+        // the response needs to be an object with a "hello" property of type string
         response: {
             200: {
                 type: "object",
@@ -64,7 +70,9 @@ fastify.route({
 const start = async() => {
     try {
         await fastify.listen(3000);
-        fastify.log.info(`server listening on ${fastify.server.address().port}`);
+        fastify.log.info(`
+                server listening on $ { fastify.server.address().port }
+                `);
     } catch (err) {
         fastify.log.error(err);
         process.exit(1);
