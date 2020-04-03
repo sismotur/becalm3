@@ -4,7 +4,7 @@ const fastify = require("fastify")({ logger: true });
 
 // Register Postgres database manager
 fastify.register(require("fastify-postgres"), {
-    connectionString: "postgres://postgres@localhost/postgres"
+    connectionString: "postgres://becalm@localhost/becalm"
 });
 
 // Declare a GET route
@@ -23,9 +23,12 @@ fastify.route({
     method: "POST",
     url: "/data-sensor",
     handler: async(request, reply) => {
-        return {
-            hello: "USER POST ROUTE OK"
-        };
+        return fastify.pg.transact(async client => {
+            const id = await client.query(
+                "INSERT INTO sensor_data.test(id) VALUES($1) RETURNING id", [100]
+            );
+            return id;
+        });
     }
 });
 
