@@ -1,6 +1,41 @@
 // run with $ node server
 // Require fastify (www.fastify.io)
-const fastify = require("fastify")({ logger: true });
+const fastify = require("fastify")({
+    logger: {
+        prettyPrint: true
+    }
+});
+
+// use ENV to manage server variables
+const fastifyEnv = require("fastify-env");
+
+// environment options
+const schema = {
+    type: "object",
+    required: ["PORT"],
+    properties: {
+        PORT: {
+            type: "string",
+            default: 3000
+        }
+    }
+};
+
+// environment options
+const options = {
+    confKey: "config", // optional, default: 'config'
+    schema: schema,
+    //data: data, // optional, default: process.env
+    dotenv: true // will read .env in root folder
+};
+
+// Register option manager
+fastify.register(fastifyEnv, options).ready(err => {
+    if (err) console.error(err);
+
+    console.log(fastify.config); // or fastify[options.confKey]
+    // output: { PORT: 3000 }
+});
 
 // Register Postgres database manager
 fastify.register(require("fastify-postgres"), {
@@ -98,7 +133,6 @@ fastify.route({
 const start = async() => {
     try {
         await fastify.listen(3000);
-        console.log(`Server listening on ${fastify.server.address().port}`);
     } catch (err) {
         fastify.log.error(err);
         process.exit(1);
