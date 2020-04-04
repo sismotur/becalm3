@@ -135,9 +135,152 @@ CREATE TABLE sd.measures_10 PARTITION OF sd.measures FOR VALUES IN (10);
 
 
 -- función para meter datos
+CREATE OR REPLACE FUNCTION sd.post_measures(_i_id_patient int, _i_data jsonb, OUT _o_json jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+AS $function$
+/*
+Inserts patient measures data
+The sd.measures will perform checks when entering data using its own triggers
+ 
+Input :
 
+- @param int _i_id_patient the id of the patient from which data has been obtained
+- @param jsonb _i_data a JSON array with the data
 
+Returns json :
+  HTTP status code (201, 400, 500) and comment (created, bad request, error)
 
+Utilities:
+  SELECT * FROM sd.measures ORDER BY id_patient, measure_type, date_generation DESC;
+  INSERT INTO sensor_data.measures (id_patient, measure_type, measure_value, date_generation) VALUES (1, 't', 37.5, '2020-04-02T12:15+02'), 
+  DELETE FROM sd.measures;
+  SELECT json_typeof('[]'); -- array
+  SELECT json_object_keys('{"f1":"abc","f2":2}');
+  SELECT json_object_keys('{"f1":"abc","f2":2}');
+  SELECT * FROM json_populate_recordset(null::sd.measures, '[{"measure_type":"t","measure_value":12.1,"date_generation":"2020-04-03T13:45"}]')
+  SELECT jsonb_array_length('[{"id_patient":1,"measure_type":"t"},{"id_patient":2,"measure_type":"o"}]');
+
+Use cases:
+
+-- 201 Created
+SELECT sd.post_measures(1, '[{ "measure_type": "c", "measure_value": 120.10, "date_generation":"2020-04-01T15:32"}]');
+SELECT sd.post_measures(1, '[
+  { "measure_type": "c", "measure_value": 120.1, "date_generation":"2020-04-01T15:29"},
+  { "measure_type": "t", "measure_value": 37.7, "date_generation":"2020-04-01T15:30"}
+  ]');
+
+-- 400 Bad Request
+SELECT sd.post_measures(1, '{}'); -- not an array
+SELECT sd.post_measures(1, '[]'); -- empty measures array
+SELECT sd.post_measures(-1, '[{ "measure_type": "c", "measure_value": 120.1, "date_generation":"2020-04-01T15:29"}]'); -- patient not found
+*/
+
+DECLARE
+   MIN_MEASURES int := 1; -- at least one measure must be inserted
+   MAX_MEASURES int := 1000; -- limit of the number of measures that can be inserted (security/performance)
+   _n_inserted_measures int; -- number of rows inserted - used to check it equals the input
+   _n_requested_measures int;
+   _status_message text; -- used to provide feedback 
+ 
+  --error management
+  _err_schema_name text;
+  _err_table_name text;
+  _err_constraint_name text;
+  _err_sql_state text;
+  _err_message_text text;
+  _err_hint text;
+
+BEGIN
+
+  -- init variables
+  _o_json := jsonb_build_object('code', 500, 'status', 'SQL server error'); 
+
+  -- 1. INITIAL CHECKS
+  
+  -- check _i_data is a JSON array
+  IF jsonb_typeof(_i_data) <> 'array' THEN 
+    RAISE EXCEPTION 'Bad request: _i_data must be a JSON array'
+      USING ERRCODE = 'IT001', HINT = 'Please check sd.post_measures';
+  END IF;
+
+  -- know how many measures we are supposed to insert
+  _n_requested_measures := jsonb_array_length(_i_data);
+  RAISE NOTICE 'inserting % measures...', _n_requested_measures;
+
+  -- check the number of measures to insert does not exceed the limit
+  IF (_n_requested_measures > MAX_MEASURES) OR (_n_requested_measures < MIN_MEASURES) THEN
+    RAISE EXCEPTION 'Bad request: the number of measures must be between % and %', MIN_MEASURES, MAX_MEASURES
+      USING ERRCODE = 'IT001', HINT = 'Please check sd.post_measures';
+  END IF;
+  
+  -- check that the user exists
+  PERFORM * FROM becalm.patients WHERE id_patient = _i_id_patient;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Bad request: patient id % not found', _i_id_patient
+      USING ERRCODE = 'IT001', HINT = 'Please check sd.post_measures';
+  END IF;
+
+  -- 2. INSERT DATA
+  
+  INSERT INTO sd.measures 
+  (SELECT
+    _i_id_patient,
+    measure_type,
+    ROUND(measure_value::numeric, 6),
+    date_generation
+  FROM jsonb_populate_recordset(null::sd.measures, _i_data));
+  GET DIAGNOSTICS _n_inserted_measures = ROW_COUNT;
+  
+  -- 3. CHECK AND RETURN
+  IF _n_inserted_measures = _n_requested_measures THEN
+    _status_message := 'Created ' || _n_inserted_measures::text || ' measures';
+    _o_json := jsonb_build_object('code', 201, 'status', _status_message);
+  ELSE 
+    RAISE EXCEPTION 'Issue when inserting measures. The function tries to insert % rows instead of %', _n_inserted_measures, _n_requested_measures
+           USING HINT = 'Please check sd.post_measures';
+  END IF;
+  
+  --exception handling
+  EXCEPTION
+    WHEN foreign_key_violation THEN --SQL state 23503
+    GET STACKED DIAGNOSTICS
+      _err_schema_name = SCHEMA_NAME,
+      _err_table_name = TABLE_NAME,
+      _err_constraint_name = CONSTRAINT_NAME;
+      SELECT row_to_json (s) FROM 
+      (SELECT 400 as code, 
+      'Foreign key violation on implan: ' || _i_name_implan ||
+        ', schema: ' || _err_schema_name || 
+        ', table: ' || _err_table_name ||
+        ', constraint name: ' || _err_constraint_name as status
+      ) s INTO _o_json;
+    WHEN SQLSTATE 'IT001' THEN
+      GET STACKED DIAGNOSTICS
+      _err_sql_state = RETURNED_SQLSTATE,
+      _err_message_text = MESSAGE_TEXT,
+      _err_hint = PG_EXCEPTION_HINT;
+      SELECT row_to_json (s) FROM 
+      (SELECT 400 as code, 
+          'SQL Error Server. SQLSTATE = ' || _err_sql_state ||
+          ', Error message = ' || _err_message_text ||
+          '. Hint = ' || _err_hint
+         as status
+      ) s INTO _o_json;
+    WHEN OTHERS THEN 
+    GET STACKED DIAGNOSTICS
+      _err_sql_state = RETURNED_SQLSTATE,
+      _err_message_text = MESSAGE_TEXT;
+    SELECT row_to_json (s) FROM 
+    (SELECT 500 as code, 
+        'SQL Error Server. SQLSTATE = ' || _err_sql_state ||
+        ', Error message = ' || _err_message_text
+       as status
+    ) s INTO _o_json;
+
+END;
+$function$
+;
 
 -- *****
 -- TESTS
