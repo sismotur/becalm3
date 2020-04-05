@@ -1,0 +1,45 @@
+{
+	"info": {
+		"_postman_id": "b49820ed-bd07-4b59-9ccf-70238fddadb4",
+		"name": "Becalm API",
+		"description": "Becalm API to manage health data",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Post health data",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "[\n    {\n        \"measure_type\": \"o\",\n        \"measure_value\": 120.1,\n        \"date_generation\": \"2020-05-04T17:14\"\n    },\n    {\n        \"measure_type\": \"t\",\n        \"measure_value\": 37.5,\n        \"date_generation\": \"2020-05-04T17:14\"\n    }\n]",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/data-sensor/2?id_device=1",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"data-sensor",
+						"2"
+					],
+					"query": [
+						{
+							"key": "id_device",
+							"value": "1"
+						}
+					]
+				},
+				"description": "Post a bunch of data coming from sensors"
+			},
+			"response": []
+		}
+	],
+	"protocolProfileBehavior": {}
+}
