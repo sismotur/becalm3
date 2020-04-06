@@ -10,29 +10,25 @@ const fastify = require("fastify")({
 // environment variables
 const schema = {
     type: "object",
-    required: ["PORT"],
+    required: ["PORT", "TEST"],
     properties: {
         PORT: {
             type: "integer",
             default: 4000
+        },
+        TEST: {
+            type: "string"
         }
     }
 };
 
 // environment options
 const options = {
+    schema: schema,
     confKey: "config",
-    data: { PORT: 9999 },
+    // data: { PORT: 9999 },
     dotenv: true
 };
-
-// Register option manager and output the configuration
-// fastify.register(require("fastify-env"), options).ready(err => {
-//     if (err) console.error(err);
-//     console.log("FASTIFY CONFIG:" + JSON.stringify(fastify.config)); // or fastify[options.confKey]
-// });
-
-fastify.register(require("fastify-env"), { schema: schema, options: options });
 
 // Register Postgres database manager
 fastify.register(require("fastify-postgres"), {
@@ -126,15 +122,24 @@ fastify.route({
     }
 });
 
-// Run the server
-const start = async() => {
-    try {
-        console.log("fastify config = " + JSON.stringify(fastify.config));
-        await fastify.listen(3000);
-    } catch (err) {
+// Start the server
+
+// Register option manager and output the configuration, then start the server
+fastify.register(require("fastify-env"), options).ready(err => {
+    // if error in the configuration process, then quit
+    if (err) {
         fastify.log.error(err);
         process.exit(1);
     }
-};
 
-start();
+    // start the server
+    fastify.listen(fastify.config.PORT, (err, address) => {
+        // do not use async/await, does not work with fastify-env
+        if (err) {
+            fastify.log.error(err);
+            process.exit(1);
+        }
+        fastify.log.info(`Server listening on ${address}`);
+        console.log("Fastify config = " + JSON.stringify(fastify.config));
+    });
+});
