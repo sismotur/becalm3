@@ -6,3 +6,6 @@ node_modules
 
 # environment variables
 *.env
+
+# MacOS files
+.DS_Store
