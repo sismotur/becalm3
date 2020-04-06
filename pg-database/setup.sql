@@ -282,6 +282,206 @@ END;
 $function$
 ;
 
+
+-- función para sacar datos
+CREATE OR REPLACE FUNCTION sd.get_measures_v100(_i_filters jsonb, OUT _o_json jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+AS $function$
+/*
+
+GET API endpoint for measures
+
+v100 - initial version
+
+Params:
+  @ _i_filters json with [mandatory (*)] key/value filters:
+  (*) id_patient
+  (*) start_date
+  
+Returns json:
+  code: [200, 400, 500]
+  status: text
+  data: array with objects data (or empty array)
+
+Utilities:
+
+  SELECT * FROM sd.measures;
+  
+  EXPLAIN ANALYZE SELECT sd.get_measures_v100('{"id_patient":1,"start_date":"2020-04-01"}'); 
+  EXPLAIN ANALYZE SELECT sd.get_measures_v100('{"id_object":10137,"api_key":"toto", "strip_nulls": true}'); -- 12-15ms
+
+Use cases:
+
+  -- 200 OK
+  SELECT sd.get_measures_v100('{"id_patient":1,"start_date":"2020-04-01"}');
+  SELECT sd.get_measures_v100('{"id_patient":2,"start_date":"2020-01-01"}');
+  SELECT sd.get_measures_v100('{"id_patient":1,"start_date":"2020-06-04T12:53:36","end_date":"2020-06-04T12:53:36"}');
+  
+  -- 404 Not Found
+  -- NOT IMPLEMENTED IF PATIENT DOES NOT EXIST
+  
+  -- 400 Bad Request
+  SELECT sd.get_measures_v100('{"id_patient":-1,"start_date":"2020-04-01"}'); -- unknown patient
+  SELECT sd.get_measures_v100('{"id_patient":1}'); -- start_date not provided (mandatory parameter)
+  SELECT sd.get_measures_v100('{"id_patient":1,"start_date":"2020-01-01T00:01","end_date":"2020-01-01T00:00"}'); -- start date > end date
+  SELECT sd.get_measures_v100('{"id_patient":-1,"start_date":"2020-04-01", "unknown_param": true}'); -- unknown param
+*/
+
+DECLARE
+  _i_id_patient int;
+  _i_start_date timestamp;
+  _i_end_date timestamp;
+
+  _err_schema_name text;
+  _err_table_name text;
+  _err_constraint_name text;
+  _err_sql_state text;
+  _err_message_text text;
+  _err_hint text;
+
+BEGIN
+  
+  SELECT jsonb_build_object('code', 500, 'status', 'SQL Server Error', 'data', '{}'::text[]) INTO _o_json;
+  
+  -- 1. CHECKS
+
+  -- reject any keys which are not in the list of defined parameters
+  IF (SELECT count(s.jsonb_object_keys) FROM
+      (SELECT "jsonb_object_keys" FROM jsonb_object_keys (_i_filters::jsonb - '{id_patient, start_date, end_date}'::text[]) ) s) > 0 
+        THEN RAISE EXCEPTION 'Bad request: invalid parameters provided' USING ERRCODE = 'IT001',
+        HINT = 'Valid parameters are: id_patient, start_date, end_date. Please check sd.get_measures_v100';
+  END IF;
+
+  -- check that a valid id_ has been provided as parameter (both are OK)
+  IF NOT (_i_filters::jsonb ?& ARRAY['id_patient', 'start_date'] ) THEN
+    RAISE EXCEPTION 'Bad request: either id_patient or start_date are missing' USING ERRCODE = 'IT001', HINT = 'Please check sd.get_measures_v100';
+  END IF;
+ 
+  -- assign id_patient
+  _i_id_patient := ((_i_filters)->>'id_patient')::int;
+
+-- check the patient is valid
+  PERFORM id_patient FROM becalm.patients WHERE id_patient = _i_id_patient;
+  IF NOT FOUND THEN
+      RAISE EXCEPTION 'Bad request: please select a valid patient (id_patient)'
+      USING ERRCODE = 'IT001', HINT = 'Please check sd.get_measures_v100';
+  END IF;
+
+-- cast data 
+  _i_start_date := ((_i_filters)->>'start_date')::timestamp;
+  _i_end_date := ((_i_filters)->>'end_date')::timestamp;
+
+-- check the start date <= end date
+  IF (_i_start_date IS NOT NULL) AND (_i_end_date IS NOT NULL) THEN
+    IF _i_start_date > _i_end_date THEN
+      RAISE EXCEPTION 'Bad request: start date must be before or equal to end date'
+      USING ERRCODE = 'IT001', HINT = 'Please check sd.get_measures_v100';
+    END IF;
+  END IF;
+  
+  
+  -- 2. RETURN DATA
+  WITH
+
+  -- **************
+  -- PREPARE TABLES
+  -- **************
+
+  _sd AS (
+  SELECT
+    m.id_patient,
+    m.measure_type,
+    m.measure_value,
+    m.date_generation
+  FROM
+    sd.measures m
+  WHERE
+    id_patient = _i_id_patient
+    AND
+      CASE WHEN _i_start_date IS NULL THEN true
+      ELSE date_generation >= _i_start_date
+      END
+    AND
+      CASE WHEN _i_end_date IS NULL THEN true
+      ELSE date_generation <= _i_end_date
+      END
+  ORDER BY date_generation DESC
+  )
+      
+  -- *****************************
+  -- Arrange JSON and extra fields
+  -- *****************************
+  
+   SELECT
+      to_jsonb(r)
+  FROM
+      (
+      SELECT
+          200 AS code,
+          'OK' AS status,
+          -- array with objects {id_patient, measures: [{measure_type, measure_value...}, {..}]
+          (
+          SELECT jsonb_agg(s) FROM
+              (
+                SELECT 
+                  p.id_patient,
+                  coalesce((SELECT jsonb_agg(t) FROM (
+                     SELECT
+                       _sd.measure_type,
+                       _sd.measure_value,
+                       _sd.date_generation
+                     FROM _sd 
+                     WHERE _sd.id_patient = p.id_patient
+                    ) t), '[]'::jsonb) as measures
+                 FROM becalm.patients p
+                 WHERE id_patient = _i_id_patient
+              ) s
+           ) AS "data") r
+      INTO _o_json;
+  
+    
+  -- TODO: remove id_patients for which measures is empty ([])
+   
+  -- return 404 if no data found
+  IF jsonb_typeof(_o_json -> 'data') = 'null' THEN
+    SELECT jsonb_build_object('code', 404, 'status', 'Not Found', 'data', '{}'::text[]) INTO _o_json;
+  END IF;
+  
+  -- exception handling
+  -- IT001 is error 400 - bad request
+   EXCEPTION
+  WHEN SQLSTATE 'IT001' THEN 
+    GET STACKED DIAGNOSTICS _err_sql_state = RETURNED_SQLSTATE,
+    _err_message_text = MESSAGE_TEXT,
+    _err_hint = PG_EXCEPTION_HINT;
+  
+  SELECT
+      to_jsonb (s)
+  FROM
+      (
+      SELECT
+          400 AS code,
+          'Wrong call to SQL Server. SQLSTATE = ' || _err_sql_state || ', Error message = ' || _err_message_text || '. Hint = ' || _err_hint AS status ) s
+  INTO
+      _o_json;
+  -- catch other errors under status 500
+  WHEN OTHERS THEN GET STACKED DIAGNOSTICS _err_sql_state = RETURNED_SQLSTATE,
+  _err_message_text = MESSAGE_TEXT,
+  _err_hint = PG_EXCEPTION_HINT;
+  
+  SELECT
+      to_jsonb (s)
+  FROM
+      (
+      SELECT
+          500 AS code,
+          'SQL Error Server. SQLSTATE = ' || _err_sql_state || ', Error message = ' || _err_message_text || '. Hint = ' || _err_hint AS status ) s
+  INTO
+      _o_json;
+END;
+$function$;
+
 -- *****
 -- TESTS
 -- *****

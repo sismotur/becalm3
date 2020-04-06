@@ -10,14 +10,11 @@ const fastify = require("fastify")({
 // environment variables
 const schema = {
     type: "object",
-    required: ["PORT", "TEST"],
+    required: ["PORT"],
     properties: {
         PORT: {
             type: "integer",
             default: 4000
-        },
-        TEST: {
-            type: "string"
         }
     }
 };
@@ -35,38 +32,90 @@ fastify.register(require("fastify-postgres"), {
     connectionString: "postgres://becalm@localhost/becalm"
 });
 
-// Declare a GET route
+// GET sensor data from a patient
 fastify.route({
     method: "GET",
-    url: "/user",
+    url: "/data-sensor/:id_patient",
+    schema: {
+        // request needs to have a querystring with a "id_device" parameter
+        querystring: {
+            type: "object",
+            required: ["start_date"],
+            properties: {
+                start_date: {
+                    description: "Only selects measures generated at or after this vale",
+                    type: "string"
+                },
+                end_date: {
+                    description: "Only selects measures generated at or before this value",
+                    type: "string"
+                }
+            },
+            // with this flag other properties cannot be retrieved
+            additionalProperties: false
+        },
+        // response object model
+        response: {
+            200: {
+                type: "array",
+                items: {
+                    type: "object",
+                    properties: {
+                        id_patient: {
+                            description: "Patient ID number",
+                            type: "number"
+                        },
+                        measures: {
+                            type: "array",
+                            description: "The values associated to the patient",
+                            items: {
+                                type: "object",
+                                properties: {
+                                    measure_type: {
+                                        type: "string"
+                                    },
+                                    measure_value: {
+                                        type: "number"
+                                    },
+                                    date_generation: {
+                                        type: "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
     handler: async(request, reply) => {
-        return {
-            hello: "USER GET ROUTE OK"
+        //   SELECT sd.get_measures_v100('{"id_patient":1,"start_date":"2020-06-04T12:53:36","end_date":"2020-06-04T12:53:36"}');
+        const filter = {
+            id_patient: request.params.id_patient,
+            start_date: request.query.start_date,
+            end_date: request.query.end_date
         };
+
+        fastify.log.info(filter);
+        // request.params.id_patient, JSON.stringify(request.body)
+        fastify.pg.query(
+            "SELECT sd.get_measures_v100($1)", [JSON.stringify(filter)],
+            function onResult(err, result) {
+                if (err) {
+                    fastify.log.error("SQL ERROR - GET /data-sensor/:id_patient" + err);
+                    reply.code(500).send(err);
+                } else {
+                    reply
+                        .type("application/json")
+                        .code(result.rows[0].get_measures_v100.code)
+                        .send(result.rows[0].get_measures_v100.data);
+                }
+            }
+        );
     }
 });
 
-// Declare a POST route
-fastify.route({
-    method: "POST",
-    url: "/data-sensor",
-    handler: async(request, reply) => {
-        return fastify.pg.transact(async client => {
-            const randomTemp =
-                Math.round((36.5 + 5 * Math.random() + Number.EPSILON) * 100) / 100;
-            const t = new Date();
-            const currentTimeISO = t.toISOString();
-            fastify.log.info(`currentTimeISO: ${currentTimeISO}`);
-            const id_device = await client.query(
-                `INSERT INTO sensor_data.measures (id_device, measure_type, measure_value, date_generation)
-                VALUES ($1, $2, $3, $4) RETURNING id_device`, [1, "t", randomTemp, currentTimeISO]
-            );
-            reply.code(200).send({ status: "OK sensor data inserted" });
-        });
-    }
-});
-
-// POST data from a device
+// POST sensor data for a patient
 fastify.route({
     method: "POST",
     url: "/data-sensor/:id_patient",
