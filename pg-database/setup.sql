@@ -119,6 +119,7 @@ CREATE TABLE sd.measures (
 
 -- indexar tabla
 CREATE INDEX idx_date_generation_inverse ON sd.measures (date_generation DESC);
+CREATE INDEX idx_measure_type ON sd.measures USING btree (measure_type DESC);
 
 -- create a partition for each device
 -- DROP TABLE sd.measures_1;
