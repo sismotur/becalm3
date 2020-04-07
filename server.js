@@ -92,12 +92,15 @@ fastify.route({
         //   SELECT sd.get_measures_v100('{"id_patient":1,"start_date":"2020-06-04T12:53:36","end_date":"2020-06-04T12:53:36"}');
         const filter = {
             id_patient: request.params.id_patient,
-            start_date: request.query.start_date,
-            end_date: request.query.end_date
+            start_date: request.query.start_date
         };
 
-        fastify.log.info(filter);
-        // request.params.id_patient, JSON.stringify(request.body)
+        if (request.query.end_date) {
+            filter.end_date = request.query.end_date;
+        }
+
+        fastify.log.info("FILTER:" + JSON.stringify(filter));
+
         fastify.pg.query(
             "SELECT sd.get_measures_v100($1)", [JSON.stringify(filter)],
             function onResult(err, result) {
@@ -105,10 +108,15 @@ fastify.route({
                     fastify.log.error("SQL ERROR - GET /data-sensor/:id_patient" + err);
                     reply.code(500).send(err);
                 } else {
-                    reply
-                        .type("application/json")
-                        .code(result.rows[0].get_measures_v100.code)
-                        .send(result.rows[0].get_measures_v100.data);
+                    const code = result.rows[0].get_measures_v100.code;
+                    if (code == 200) {
+                        reply
+                            .type("application/json")
+                            .code(code)
+                            .send(result.rows[0].get_measures_v100.data);
+                    } else {
+                        reply.code(code).send(result.rows[0].get_measures_v100.status);
+                    }
                 }
             }
         );
