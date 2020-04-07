@@ -1,7 +1,10 @@
+// FASTIFY SERVER
+
 // run with $ node server
 // Require fastify (www.fastify.io)
 const fastify = require("fastify")({
     logger: {
+        level: "info",
         prettyPrint: true
     }
 });
@@ -10,11 +13,15 @@ const fastify = require("fastify")({
 // environment variables
 const schema = {
     type: "object",
-    required: ["PORT"],
+    required: ["PORT", "NODE_ENV"],
     properties: {
         PORT: {
             type: "integer",
             default: 4000
+        },
+        NODE_ENV: {
+            type: "string",
+            default: "production"
         }
     }
 };
@@ -196,7 +203,9 @@ fastify.register(require("fastify-env"), options).ready(err => {
             fastify.log.error(err);
             process.exit(1);
         }
-        fastify.log.info(`Server listening on ${address}`);
+        fastify.log.info(
+            `Server listening on ${address} - Environment is ${fastify.config.NODE_ENV}`
+        );
         console.log("Fastify config = " + JSON.stringify(fastify.config));
     });
 });
