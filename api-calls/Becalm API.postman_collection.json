@@ -7,13 +7,13 @@
 	},
 	"item": [
 		{
-			"name": "Post health data",
+			"name": "Post sensor data for a patient",
 			"request": {
 				"method": "POST",
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "[\n    {\n        \"measure_type\": \"o\",\n        \"measure_value\": 120.1,\n        \"date_generation\": \"2020-05-04T17:14\"\n    },\n    {\n        \"measure_type\": \"t\",\n        \"measure_value\": 37.5,\n        \"date_generation\": \"2020-05-04T17:14\"\n    }\n]",
+					"raw": "[\n    {\n        \"measure_type\": \"t\",\n        \"measure_value\": 37.49,\n        \"date_generation\": \"2020-06-04T12:53:36\"\n    },\n    {\n        \"measure_type\": \"t\",\n        \"measure_value\": 37.50,\n        \"date_generation\": \"2020-06-04T12:58:37\"\n    }\n]",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -36,7 +36,48 @@
 						}
 					]
 				},
-				"description": "Post a bunch of data coming from sensors"
+				"description": "Post a bunch of data coming from sensors, the route id is the patient"
+			},
+			"response": []
+		},
+		{
+			"name": "Get sensor data for a patient",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "[\n    {\n        \"measure_type\": \"t\",\n        \"measure_value\": 37.49,\n        \"date_generation\": \"2020-06-04T12:53:36\"\n    },\n    {\n        \"measure_type\": \"t\",\n        \"measure_value\": 37.50,\n        \"date_generation\": \"2020-06-04T12:58:37\"\n    }\n]",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/data-sensor/2?start_date=2020-01-01&end_date=2020-12-30",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"data-sensor",
+						"2"
+					],
+					"query": [
+						{
+							"key": "start_date",
+							"value": "2020-01-01"
+						},
+						{
+							"key": "end_date",
+							"value": "2020-12-30"
+						}
+					]
+				},
+				"description": "Post a bunch of data coming from sensors, the route number is the patient id"
 			},
 			"response": []
 		}
