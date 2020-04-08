@@ -42,6 +42,7 @@ fastify.register(require("fastify-postgres"), {
 // routes
 
 fastify.register(require("./modules/v100/devices/routes"), { prefix: "v100" });
+fastify.register(require("./modules/v100/patients/routes"), { prefix: "v100" });
 
 // GET sensor data from a patient
 fastify.route({

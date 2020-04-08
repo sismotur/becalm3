@@ -2,6 +2,7 @@ DROP SCHEMA IF EXISTS sd CASCADE;
 DROP SCHEMA IF EXISTS becalm CASCADE;
 
 DROP VIEW IF EXISTS sd.v_devices;
+DROP VIEW IF EXISTS sd.v_patients;
 DROP TABLE IF EXISTS sd.measures;
 DROP TABLE IF EXISTS sd.measure_types;
 DROP TABLE IF EXISTS sd.devices_patients
@@ -156,6 +157,17 @@ SELECT
 FROM sd.devices d
 ORDER BY id_device;
 
+-- list all patients
+CREATE VIEW sd.v_patients AS 
+SELECT
+  p.id_patient,
+  p.first_name_patient,
+  p.last_name_patient,
+  p.location_hospital,
+  p.location_place,
+  p.date_creation
+FROM becalm.patients p
+ORDER BY id_patient;
 
 -- *********
 -- FUNCTIONS
