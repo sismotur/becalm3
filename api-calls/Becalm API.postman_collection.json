@@ -21,13 +21,13 @@
 					}
 				},
 				"url": {
-					"raw": "{{base_url}}/data-sensor/2?id_device=1",
+					"raw": "{{base_url}}/data-sensor/3?id_device=1",
 					"host": [
 						"{{base_url}}"
 					],
 					"path": [
 						"data-sensor",
-						"2"
+						"3"
 					],
 					"query": [
 						{
@@ -58,7 +58,7 @@
 					}
 				},
 				"url": {
-					"raw": "{{base_url}}/data-sensor/2?start_date=2020-01-01&end_date=2020-12-30",
+					"raw": "{{base_url}}/data-sensor/2?start_date=2020-04-07T15:45",
 					"host": [
 						"{{base_url}}"
 					],
@@ -69,12 +69,70 @@
 					"query": [
 						{
 							"key": "start_date",
-							"value": "2020-01-01"
-						},
-						{
-							"key": "end_date",
-							"value": "2020-12-30"
+							"value": "2020-04-07T15:45"
 						}
+					]
+				},
+				"description": "Post a bunch of data coming from sensors, the route number is the patient id"
+			},
+			"response": []
+		},
+		{
+			"name": "Get list of devices",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "[\n    {\n        \"measure_type\": \"t\",\n        \"measure_value\": 37.49,\n        \"date_generation\": \"2020-06-04T12:53:36\"\n    },\n    {\n        \"measure_type\": \"t\",\n        \"measure_value\": 37.50,\n        \"date_generation\": \"2020-06-04T12:58:37\"\n    }\n]",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/v100/devices",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"v100",
+						"devices"
+					]
+				},
+				"description": "Post a bunch of data coming from sensors, the route number is the patient id"
+			},
+			"response": []
+		},
+		{
+			"name": "Get list of patients",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "[\n    {\n        \"measure_type\": \"t\",\n        \"measure_value\": 37.49,\n        \"date_generation\": \"2020-06-04T12:53:36\"\n    },\n    {\n        \"measure_type\": \"t\",\n        \"measure_value\": 37.50,\n        \"date_generation\": \"2020-06-04T12:58:37\"\n    }\n]",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/v100/patients",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"v100",
+						"patients"
 					]
 				},
 				"description": "Post a bunch of data coming from sensors, the route number is the patient id"
