@@ -5,8 +5,8 @@
 const fastify = require("fastify")({
     logger: {
         level: "info",
-        prettyPrint: true
-    }
+        prettyPrint: true,
+    },
 });
 
 // use ENV to manage server variables
@@ -17,13 +17,13 @@ const schema = {
     properties: {
         PORT: {
             type: "integer",
-            default: 4000
+            default: 4000,
         },
         NODE_ENV: {
             type: "string",
-            default: "production"
-        }
-    }
+            default: "production",
+        },
+    },
 };
 
 // environment options
@@ -31,12 +31,12 @@ const options = {
     schema: schema,
     confKey: "config",
     // data: { PORT: 9999 },
-    dotenv: true
+    dotenv: true,
 };
 
 // Register Postgres database manager
 fastify.register(require("fastify-postgres"), {
-    connectionString: "postgres://becalm@localhost/becalm"
+    connectionString: "postgres://becalm@localhost/becalm",
 });
 
 // GET sensor data from a patient
@@ -51,15 +51,15 @@ fastify.route({
             properties: {
                 start_date: {
                     description: "Only selects measures generated at or after this vale",
-                    type: "string"
+                    type: "string",
                 },
                 end_date: {
                     description: "Only selects measures generated at or before this value",
-                    type: "string"
-                }
+                    type: "string",
+                },
             },
             // with this flag other properties cannot be retrieved
-            additionalProperties: false
+            additionalProperties: false,
         },
         // response object model
         response: {
@@ -70,7 +70,7 @@ fastify.route({
                     properties: {
                         id_patient: {
                             description: "Patient ID number",
-                            type: "number"
+                            type: "number",
                         },
                         measures: {
                             type: "array",
@@ -79,55 +79,51 @@ fastify.route({
                                 type: "object",
                                 properties: {
                                     measure_type: {
-                                        type: "string"
+                                        type: "string",
                                     },
                                     measure_value: {
-                                        type: "number"
+                                        type: "number",
                                     },
                                     date_generation: {
-                                        type: "string"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+                                        type: "string",
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
     },
     handler: async(request, reply) => {
-        //   SELECT sd.get_measures_v100('{"id_patient":1,"start_date":"2020-06-04T12:53:36","end_date":"2020-06-04T12:53:36"}');
+        // filter object passed to the database to retrieve data
         const filter = {
             id_patient: request.params.id_patient,
-            start_date: request.query.start_date
+            start_date: request.query.start_date,
         };
 
         if (request.query.end_date) {
             filter.end_date = request.query.end_date;
         }
 
-        fastify.log.info("FILTER:" + JSON.stringify(filter));
+        // fastify.log.info("FILTER:" + JSON.stringify(filter));
 
-        fastify.pg.query(
-            "SELECT sd.get_measures_v100($1)", [JSON.stringify(filter)],
-            function onResult(err, result) {
-                if (err) {
-                    fastify.log.error("SQL ERROR - GET /data-sensor/:id_patient" + err);
-                    reply.code(500).send(err);
-                } else {
-                    const code = result.rows[0].get_measures_v100.code;
-                    if (code == 200) {
-                        reply
-                            .type("application/json")
-                            .code(code)
-                            .send(result.rows[0].get_measures_v100.data);
-                    } else {
-                        reply.code(code).send(result.rows[0].get_measures_v100.status);
-                    }
-                }
-            }
-        );
-    }
+        const client = await fastify.pg.connect();
+        const { rows } = await client.query("SELECT sd.get_measures_v100($1)", [
+            JSON.stringify(filter),
+        ]);
+        client.release();
+
+        const code = rows[0].get_measures_v100.code;
+        if (code == 200) {
+            reply
+                .type("application/json")
+                .code(code)
+                .send(rows[0].get_measures_v100.data);
+        } else {
+            reply.code(code).send(rows[0].get_measures_v100.status);
+        }
+    },
 });
 
 // POST sensor data for a patient
@@ -142,11 +138,11 @@ fastify.route({
             properties: {
                 id_device: {
                     description: "The id of the device posting the measure",
-                    type: "number"
-                }
+                    type: "number",
+                },
             },
             // with this flag other properties cannot be retrieved
-            additionalProperties: false
+            additionalProperties: false,
         },
         // the response needs to be an object with a "hello" property of type string
         response: {
@@ -154,14 +150,14 @@ fastify.route({
                 type: "object",
                 properties: {
                     code: {
-                        type: "number"
+                        type: "number",
                     },
                     status: {
-                        type: "string"
-                    }
-                }
-            }
-        }
+                        type: "string",
+                    },
+                },
+            },
+        },
     },
     // this function is executed for every request before the handler is executed
     preHandler: async(request, reply) => {
@@ -169,27 +165,22 @@ fastify.route({
         //fastify.log.info("Called beforeHandler route POST /data-sensor/:id_patient");
     },
     handler: async(request, reply) => {
-        // call the dedicated inserting PG function
-        fastify.pg.query(
-            "SELECT sd.post_measures($1, $2)", [request.params.id_patient, JSON.stringify(request.body)],
-            function onResult(err, result) {
-                if (err) {
-                    fastify.log.error("SQL ERROR - POST /data-sensor/:id_patient" + err);
-                    reply.code(500).send(err);
-                } else {
-                    reply
-                        .code(result.rows[0].post_measures.code)
-                        .send(result.rows[0].post_measures.status);
-                }
-            }
-        );
-    }
+        const client = await fastify.pg.connect();
+        const { rows } = await client.query("SELECT sd.post_measures($1, $2)", [
+            request.params.id_patient,
+            JSON.stringify(request.body),
+        ]);
+        client.release();
+
+        const code = rows[0].post_measures.code;
+        reply.code(code).send(rows[0].post_measures.status);
+    },
 });
 
 // Start the server
 
 // Register option manager and output the configuration, then start the server
-fastify.register(require("fastify-env"), options).ready(err => {
+fastify.register(require("fastify-env"), options).ready((err) => {
     // if error in the configuration process, then quit
     if (err) {
         fastify.log.error(err);
