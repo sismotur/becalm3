@@ -1,6 +1,7 @@
 DROP SCHEMA IF EXISTS sd CASCADE;
 DROP SCHEMA IF EXISTS becalm CASCADE;
 
+DROP VIEW IF EXISTS sd.v_devices;
 DROP TABLE IF EXISTS sd.measures;
 DROP TABLE IF EXISTS sd.measure_types;
 DROP TABLE IF EXISTS sd.devices_patients
@@ -17,7 +18,7 @@ SELECT extract(SECOND FROM '2020-03-20T18:15:59'::timestamp); -- 59
 */
 
 -- ************************
--- Pacientes
+-- Schemas
 -- ************************
 
 CREATE SCHEMA IF NOT EXISTS becalm AUTHORIZATION becalm;
@@ -52,6 +53,7 @@ CREATE TABLE sd.devices (
    type_device text NOT NULL, -- raspberry_pi
    model_device text NOT NULL, -- 3B+
    version_device text NOT NULL,
+   ip_device inet NOT NULL,
    location_hospital varchar(100) NOT NULL, -- candidate to FK
    location_place varchar(100) NOT NULL,
    date_creation timestamp NOT NULL DEFAULT NOW(),
@@ -135,7 +137,32 @@ CREATE TABLE sd.measures_9 PARTITION OF sd.measures FOR VALUES IN (9);
 CREATE TABLE sd.measures_10 PARTITION OF sd.measures FOR VALUES IN (10);
 
 
--- función para meter datos
+-- *****
+-- VIEWS
+-- *****
+
+-- list all devices
+CREATE VIEW sd.v_devices AS 
+SELECT 
+  d.id_device,
+  d.name_device,
+  d.type_device,
+  d.model_device,
+  d.version_device,
+  d.ip_device,
+  d.location_hospital,
+  d.location_place,
+  d.date_creation
+FROM sd.devices d
+ORDER BY id_device;
+
+
+-- *********
+-- FUNCTIONS
+-- *********
+
+
+-- post measures
 CREATE OR REPLACE FUNCTION sd.post_measures(_i_id_patient int, _i_data jsonb, OUT _o_json jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql

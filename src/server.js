@@ -39,6 +39,10 @@ fastify.register(require("fastify-postgres"), {
     connectionString: "postgres://becalm@localhost/becalm",
 });
 
+// routes
+
+fastify.register(require("./modules/v100/devices/routes"), { prefix: "v100" });
+
 // GET sensor data from a patient
 fastify.route({
     method: "GET",
