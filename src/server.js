@@ -39,64 +39,10 @@ fastify.register(require("fastify-postgres"), {
     connectionString: "postgres://becalm@localhost/becalm",
 });
 
-// routes
-
+// Register routes
 fastify.register(require("./modules/v100/devices/routes"), { prefix: "v100" });
 fastify.register(require("./modules/v100/patients/routes"), { prefix: "v100" });
 fastify.register(require("./modules/v100/measures/routes"), { prefix: "v100" });
-
-// POST sensor data for a patient
-fastify.route({
-    method: "POST",
-    url: "/data-sensor/:id_patient",
-    schema: {
-        // request needs to have a querystring with a "id_device" parameter
-        querystring: {
-            type: "object",
-            required: ["id_device"],
-            properties: {
-                id_device: {
-                    description: "The id of the device posting the measure",
-                    type: "number",
-                },
-            },
-            // with this flag other properties cannot be retrieved
-            additionalProperties: false,
-        },
-        // the response needs to be an object with a "hello" property of type string
-        response: {
-            201: {
-                type: "object",
-                properties: {
-                    code: {
-                        type: "number",
-                    },
-                    status: {
-                        type: "string",
-                    },
-                },
-            },
-        },
-    },
-    // this function is executed for every request before the handler is executed
-    preHandler: async(request, reply) => {
-        // e.g. check authentication
-        //fastify.log.info("Called beforeHandler route POST /data-sensor/:id_patient");
-    },
-    handler: async(request, reply) => {
-        const client = await fastify.pg.connect();
-        const { rows } = await client.query("SELECT sd.post_measures($1, $2)", [
-            request.params.id_patient,
-            JSON.stringify(request.body),
-        ]);
-        client.release();
-
-        const code = rows[0].post_measures.code;
-        reply.code(code).send(rows[0].post_measures.status);
-    },
-});
-
-// Start the server
 
 // Register option manager and output the configuration, then start the server
 fastify.register(require("fastify-env"), options).ready((err) => {

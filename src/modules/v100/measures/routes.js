@@ -1,8 +1,4 @@
-const {
-    measureSchema,
-    listMeasuresSchema,
-    postMeasuresSchema,
-} = require("./schema");
+const { listMeasuresSchema, postMeasuresSchema } = require("./schema");
 
 // GET measures
 module.exports = (fastify, options, done) => {
@@ -37,6 +33,28 @@ module.exports = (fastify, options, done) => {
             } else {
                 reply.code(code).send(rows[0].get_measures_v100.status);
             }
+        },
+    });
+    // POST sensor data for a patient
+    fastify.route({
+        method: "POST",
+        url: "/data-sensor/:id_patient",
+        schema: postMeasuresSchema,
+        // this function is executed for every request before the handler is executed
+        preHandler: async(request, reply) => {
+            // e.g. check authentication
+            //fastify.log.info("Called beforeHandler route POST /data-sensor/:id_patient");
+        },
+        handler: async(request, reply) => {
+            const client = await fastify.pg.connect();
+            const { rows } = await client.query("SELECT sd.post_measures($1, $2)", [
+                request.params.id_patient,
+                JSON.stringify(request.body),
+            ]);
+            client.release();
+
+            const code = rows[0].post_measures.code;
+            reply.code(code).send(rows[0].post_measures.status);
         },
     });
     done();
