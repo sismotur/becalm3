@@ -35,6 +35,23 @@ module.exports = (fastify, options, done) => {
             }
         },
     });
+    // GET sensor data from a patient
+    fastify.route({
+        method: "GET",
+        url: "/data-sensor/latest",
+        schema: listMeasuresSchema,
+        handler: async(request, reply) => {
+            const client = await fastify.pg.connect();
+            const { rows } = await client.query(`SELECT JSON_AGG(s)
+            FROM ( SELECT p.id_patient, COALESCE((SELECT JSON_AGG(t) FROM (
+              SELECT _sd.measure_type, _sd.measure_value, _sd.date_generation
+              FROM sd.v_measures_last_1hour _sd
+              WHERE _sd.id_patient = p.id_patient ) t), '[]'::JSON) AS measures
+            FROM becalm.patients p ) s`);
+            client.release();
+            reply.type("application/json").code(200).send(rows[0].json_agg);
+        },
+    });
     // POST sensor data for a patient
     fastify.route({
         method: "POST",
