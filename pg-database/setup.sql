@@ -3,6 +3,7 @@ DROP SCHEMA IF EXISTS becalm CASCADE;
 
 DROP VIEW IF EXISTS sd.v_devices;
 DROP VIEW IF EXISTS sd.v_patients;
+DROP VIEW IF EXISTS sd.v_measures_last_1hour;
 DROP TABLE IF EXISTS sd.measures;
 DROP TABLE IF EXISTS sd.measure_types;
 DROP TABLE IF EXISTS sd.devices_patients
@@ -168,6 +169,28 @@ SELECT
   p.date_creation
 FROM becalm.patients p
 ORDER BY id_patient;
+
+-- last measures for each patient over the last 1-hour
+
+-- will check last hour measures
+CREATE VIEW sd.v_measures_last_1hour AS 
+WITH _m AS (
+  SELECT
+    m.id_patient,
+    m.measure_type,
+    m.measure_value,
+    m.date_generation,
+    row_number() OVER (PARTITION BY m.id_patient, m.measure_type ORDER BY m.date_generation DESC) as row_num
+  FROM sd.measures m
+  WHERE date_generation > CURRENT_TIMESTAMP - INTERVAL '1 hour'
+)
+SELECT
+  _m.id_patient,
+  _m.measure_type,
+  _m.measure_value,
+  _m.date_generation
+FROM _m WHERE row_num = 1;
+
 
 -- *********
 -- FUNCTIONS
