@@ -6,7 +6,9 @@ const PatientTr = ({children, id, id_patient}) => {
     const history = useHistory();
 
     const handleClick = () => {
-        history.push(`/patient/${id_patient}`);
+        if(id_patient){
+            history.push(`/patient/${id_patient}`);
+        }
     };
 
     return (
