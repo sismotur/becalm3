@@ -59,8 +59,8 @@ export default (props) => {
             return o.value;
         }));
         return {
-            min: minValue - (minValue * 0.1),
-            max: maxValue * 1.1,
+            min: minValue,
+            max: maxValue,
         }
     };
 
@@ -110,7 +110,7 @@ export default (props) => {
                 )}
 
                 {!loading && Object.keys(measures).length > 0 && (
-                    <>
+                    <div className="flex flex-wrap items-center">
                         <div className="mr-16 mb-16">
                             <SubHeading className="text-center mb-4 pl-16">Heartbeat (pulse/min)</SubHeading>
                             <LineChart width={500} height={300} data={measures.heartbeatMeasures || []}>
@@ -137,7 +137,7 @@ export default (props) => {
                             <SubHeading className="text-center mb-4 pl-16">Pressure (Pa)</SubHeading>
                             <LineChart width={500} height={300} data={measures.pressureMeasures || []}>
                                 <XAxis dataKey="date"/>
-                                <YAxis domain={[0, 'auto']}/>
+                                <YAxis domain={[getPressureRange().min, getPressureRange().max]}/>
                                 <CartesianGrid strokeDasharray="3 3"/>
                                 <Tooltip/>
                                 <Legend/>
@@ -155,7 +155,7 @@ export default (props) => {
                                 <Line type="monotone" dataKey="value" name="temperature" stroke="#eb4034" activeDot={{r: 8}}/>
                             </LineChart>
                         </div>
-                    </>
+                    </div>
                 )}
 
 
