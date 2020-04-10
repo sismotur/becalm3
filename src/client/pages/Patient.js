@@ -31,6 +31,7 @@ export default (props) => {
             updatedMeasures.heartbeatMeasures = formatMeasure(measures, 'h');
             updatedMeasures.oxygenMeasures = formatMeasure(measures, 'o');
             updatedMeasures.pressureMeasures = formatMeasure(measures, 'p');
+            updatedMeasures.temperatureMeasures = formatMeasure(measures, 't');
             setMeasures(updatedMeasures)
         }
     };
@@ -49,6 +50,20 @@ export default (props) => {
             });
     };
 
+    // Return the pressure graph range - 10% more than the maximum value and 10% minimum than the minimum value, so way the graph looks like something else than a straight line
+    const getPressureRange = () => {
+        const minValue = Math.min.apply(Math, measures.pressureMeasures.map(function (o) {
+            return o.value;
+        }));
+        const maxValue = Math.max.apply(Math, measures.pressureMeasures.map(function (o) {
+            return o.value;
+        }));
+        return {
+            min: minValue - (minValue * 0.1),
+            max: maxValue * 1.1,
+        }
+    };
+
     // Fetch patient data every second
     useEffect(() => {
         fetchData(id)
@@ -65,7 +80,8 @@ export default (props) => {
                         <ChevronBack className="h-3 fill-current mr-2"/>
                         Back
                     </Button>
-                    <div className="ml-auto mr-0 p-4 rounded-lg bg-blue-100 text-xl border-2 border-blue-300 flex items-center">
+                    <div
+                        className="ml-auto mr-0 p-4 rounded-lg bg-blue-100 text-xl border-2 border-blue-300 flex items-center">
                         <Info className="w-5 fill-current mr-2"/>
                         Data in the last hour
                     </div>
@@ -74,7 +90,7 @@ export default (props) => {
                     <Heading>
                         Patient #{id} -
                         {!loading && (
-                            <Badge type={measures.length > 0 ? 'ok' : 'danger'} className="ml-4 text-base"/>
+                            <Badge type={Object.keys(measures).length > 0 ? 'ok' : 'danger'} className="ml-4 text-base"/>
                         )}
                     </Heading>
                 </div>
@@ -96,14 +112,14 @@ export default (props) => {
                 {!loading && Object.keys(measures).length > 0 && (
                     <>
                         <div className="mr-16 mb-16">
-                            <SubHeading className="text-center mb-4 pl-16">Heartbeat</SubHeading>
+                            <SubHeading className="text-center mb-4 pl-16">Heartbeat (pulse/min)</SubHeading>
                             <LineChart width={500} height={300} data={measures.heartbeatMeasures || []}>
                                 <XAxis dataKey="date"/>
                                 <YAxis/>
                                 <CartesianGrid strokeDasharray="3 3"/>
                                 <Tooltip/>
                                 <Legend/>
-                                <Line type="monotone" dataKey="value" stroke="#8884d8" activeDot={{r: 8}}/>
+                                <Line type="monotone" dataKey="value" name="heartbeat" stroke="#8884d8" activeDot={{r: 8}}/>
                             </LineChart>
                         </div>
                         <div className="mr-16 mb-16">
@@ -114,18 +130,29 @@ export default (props) => {
                                 <CartesianGrid strokeDasharray="3 3"/>
                                 <Tooltip/>
                                 <Legend/>
-                                <Line type="monotone" dataKey="value" stroke="#3aa6e0" activeDot={{r: 8}}/>
+                                <Line type="monotone" dataKey="value" name="oxygen" stroke="#3aa6e0" activeDot={{r: 8}}/>
                             </LineChart>
                         </div>
                         <div className="mr-16 mb-16">
-                            <SubHeading className="text-center mb-4 pl-16">Pressure</SubHeading>
+                            <SubHeading className="text-center mb-4 pl-16">Pressure (Pa)</SubHeading>
                             <LineChart width={500} height={300} data={measures.pressureMeasures || []}>
                                 <XAxis dataKey="date"/>
                                 <YAxis domain={[0, 'auto']}/>
                                 <CartesianGrid strokeDasharray="3 3"/>
                                 <Tooltip/>
                                 <Legend/>
-                                <Line type="monotone" dataKey="value" stroke="#e6cc27" activeDot={{r: 1}}/>
+                                <Line type="monotone" dataKey="value" name="pressure" stroke="#e6cc27" activeDot={{r: 1}}/>
+                            </LineChart>
+                        </div>
+                        <div className="mr-16 mb-16">
+                            <SubHeading className="text-center mb-4 pl-16">Temperature (°C)</SubHeading>
+                            <LineChart width={500} height={300} data={measures.temperatureMeasures || []}>
+                                <XAxis dataKey="date"/>
+                                <YAxis domain={[0, 'auto']}/>
+                                <CartesianGrid strokeDasharray="3 3"/>
+                                <Tooltip/>
+                                <Legend/>
+                                <Line type="monotone" dataKey="value" name="temperature" stroke="#eb4034" activeDot={{r: 8}}/>
                             </LineChart>
                         </div>
                     </>
