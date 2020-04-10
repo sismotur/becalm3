@@ -64,4 +64,12 @@ export const ChevronRight = ({className}) => (
     </svg>
 );
 
+export const ChevronBack = ({className}) => (
+    <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px"
+         viewBox="0 0 103.4 185.3" className={className}>
+        <path d="M85.1,182.2L3.1,100.3c-4.2-4.2-4.2-11,0-15.2L85.1,3.1c4.2-4.2,11-4.2,15.2,0c4.2,4.2,4.2,11,0,15.2L25.9,92.7l74.4,74.3
+	c4.2,4.2,4.2,11,0,15.2c-2.1,2.1-4.9,3.1-7.6,3.1C89.9,185.3,87.2,184.3,85.1,182.2z"/>
+    </svg>
+);
+
 
