@@ -25,7 +25,7 @@ export default (props) => {
     return (
         <>
             <Helmet>
-                <title>Dashboard</title>
+                <title>Patient #{id}</title>
             </Helmet>
             <TopBlock>
                 <div className="mb-4">
