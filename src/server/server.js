@@ -9,6 +9,11 @@ const fastify = require("fastify")({
     },
 });
 
+// use CORS without particular options
+fastify.register(require("fastify-cors"), {
+    origin: true,
+});
+
 // use ENV to manage server variables
 // environment variables
 const schema = {
