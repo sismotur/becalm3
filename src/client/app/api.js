@@ -1,5 +1,7 @@
-const PATIENT_DATA = '{{base_url}}/{{api_version}}/data-sensor/2?start_date=2020-04-09T19:00'
-const ALL_PATIENTS_PATH = "http://becalm.ngrok.io/v100/data-sensor/latest";
+import moment from 'moment';
+
+const ALL_PATIENTS_PATH = 'http://becalm.ngrok.io/v100/data-sensor/latest';
+const PATIENT_PATH = 'http://becalm.ngrok.io/v100/data-sensor';
 
 const requestConfig = {
     method: 'GET',
@@ -12,5 +14,13 @@ const requestConfig = {
 export async function fetchAllPatients() {
     const res = await fetch(ALL_PATIENTS_PATH, requestConfig);
     const string = await res.text();
-    return string === "" ? {} : JSON.parse(string);
+    return string === '' ? {} : JSON.parse(string);
+}
+
+export async function fetchPatient(id_patient) {
+    const lastHour = moment().subtract(1, 'hours').format('YYYY-MM-DDTHH:mm');
+    const url = `${PATIENT_PATH}/${id_patient}?start_date=${lastHour}`;
+    const res = await fetch(url, requestConfig);
+    const string = await res.text();
+    return string === '' ? {} : JSON.parse(string);
 }
