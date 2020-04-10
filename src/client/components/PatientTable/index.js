@@ -3,8 +3,17 @@ import PropTypes from 'prop-types';
 import PatientTh from "./PatientTh";
 import PatientTr from "./PatientTr";
 import PatientRow from "./PatientRow";
+import {Loading} from "../Icons";
 
 const PatientTable = ({patients}) => {
+
+    if(patients.length === 0){
+        return (
+            <div className="p-16 text-center">
+                <Loading className="w-32 stroke-current mx-auto"/>
+            </div>
+        )
+    }
 
     return (
         <table className="min-w-full">

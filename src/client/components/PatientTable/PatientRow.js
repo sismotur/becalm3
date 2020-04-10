@@ -29,6 +29,11 @@ const PatientRow = ({patient}) => {
         return moment(oldestDate).fromNow();
     };
 
+    // Status is ok if all measures are there
+    const getStatus = () => {
+        return (getMeasure('h') > 0 && getMeasure('o') > 0 && getMeasure('p') > 0) ? 'ok' : 'danger';
+    };
+
     return (
         <>
             <PatientTd>{id_patient}</PatientTd>
@@ -36,7 +41,7 @@ const PatientRow = ({patient}) => {
             <PatientTd>{getMeasure('o')}</PatientTd>
             <PatientTd>{getMeasure('p')}</PatientTd>
             <PatientTd>
-                <Badge type={Math.random() >= 0.5 ? 'ok' : 'danger'}/>
+                <Badge type={getStatus()}/>
             </PatientTd>
             <PatientTd>
                 {getLastUpdate()}
