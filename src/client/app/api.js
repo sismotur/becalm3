@@ -1,7 +1,7 @@
 import moment from 'moment';
 
-const ALL_PATIENTS_PATH = 'http://becalm.ngrok.io/v100/data-sensor/latest';
-const PATIENT_PATH = 'http://becalm.ngrok.io/v100/data-sensor';
+const ALL_PATIENTS_PATH = 'http://valora.io:8080/v100/data-sensor/latest';
+const PATIENT_PATH = 'http://valora.io:8080/v100/data-sensor';
 
 const requestConfig = {
     method: 'GET',

@@ -11,7 +11,9 @@ const fastify = require("fastify")({
 
 // use CORS without particular options
 fastify.register(require("fastify-cors"), {
-    origin: true,
+    origin: "*",
+    // preflightContinue: true,
+    // preflight: false,
 });
 
 // use ENV to manage server variables
@@ -48,7 +50,7 @@ fastify.register(require("fastify-env"), options);
 // register the database (need to load configuration first)
 fastify.register(require("fastify-postgres"), {
     // consider abandoning fastify-env: https://github.com/fastify/fastify-env/issues/48
-    connectionString: "postgres://becalm@localhost/becalm",
+	connectionString: "postgres://postgres:becalm*@167.71.42.223:5432/becalm",
 });
 
 // Register Postgres database manager
@@ -65,9 +67,9 @@ const start = async() => {
     try {
         // call ready() to ensure all plugins are loaded properly before calling listen()
         await fastify.ready();
-        await fastify.listen(fastify.config.PORT);
+        await fastify.listen(fastify.config.PORT,fastify.config.ADDRESS);
         fastify.log.info(
-            `Server listening on ${fastify.config.ADDRESS} - Environment is ${fastify.config.NODE_ENV}`
+            `Server listening on ${fastify.config.ADDRESS}:${fastify.config.PORT} - Environment is ${fastify.config.NODE_ENV}`
         );
         console.log("Fastify config = " + JSON.stringify(fastify.config));
     } catch (err) {
