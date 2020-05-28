@@ -2,22 +2,23 @@
 
 This server holds data about the patients, the devices posting data, and the sensor data posted by the devices.
 
-# How to use (TODO - Work in progress)
+## Getting started 🚀
 
-## Download from GitHub
-
-npm init... TBD
-
-## Download manually
-
-Download the server code
-
-`git clone ...`
-
+### Front end:
+Install dependencies and start the dev server:     
+```
 npm install
-npm run dev
+npm start
+```
+The app will be available from http://localhost:3000.  
 
-# or
+### Node server & database:
+[To be completed]
 
-yarn
-yarn dev
+
+## Production
+To build the app bundle for production run:    
+```
+npm run build
+```
+Your app will be available in the build directory.  
