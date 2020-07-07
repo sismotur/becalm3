@@ -28,7 +28,7 @@
     "fastify-postgres": "^2.0.0",
     "install": "^0.13.0",
     "moment": "^2.24.0",
-    "npm": "^6.14.4",
+    "npm": "^6.14.6",
     "pg": "^8.0.0",
     "pino-pretty": "^4.0.0",
     "prop-types": "^15.7.2",
